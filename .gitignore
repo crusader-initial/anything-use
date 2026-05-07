@@ -12,5 +12,11 @@ servers/computer/data/
 .DS_Store
 *.swp
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
 # claude-code per-user
 .claude/settings.local.json
