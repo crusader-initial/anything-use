@@ -152,4 +152,4 @@ repo root, so they work from any clone path. PRs welcome — especially:
 
 ## License
 
-TBD — currently unlicensed. Will pick before first public release.
+MIT — see [`LICENSE`](./LICENSE).

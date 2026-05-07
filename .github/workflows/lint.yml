@@ -1,0 +1,52 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: shellcheck
+        run: |
+          shopt -s globstar
+          shellcheck \
+            scripts/*.sh \
+            servers/browser/run.sh \
+            servers/mobile/run.sh \
+            servers/computer/run.sh \
+            servers/computer/agentd/entrypoint-with-agentd.sh
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax-check Python sources
+        run: |
+          python -m py_compile servers/computer/agentd/agentd.py
+          python -m py_compile servers/computer/wrapper/mcp_server.py
+      - name: Verify wrapper imports cleanly
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r servers/computer/wrapper/requirements.txt
+          python -c "import importlib.util, pathlib; \
+            spec = importlib.util.spec_from_file_location('mcp_server', \
+              pathlib.Path('servers/computer/wrapper/mcp_server.py')); \
+            mod = importlib.util.module_from_spec(spec); \
+            spec.loader.exec_module(mod); \
+            print('mcp_server imports OK with', len([t for t in dir(mod) if t.startswith(\"computer_\")]), 'tools')"
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml
+        run: docker compose -f servers/computer/docker-compose.yml config >/dev/null
