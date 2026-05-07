@@ -1,0 +1,16 @@
+# Persistent state — never commit
+logs/
+servers/browser/profiles/
+servers/computer/data/
+
+# Secrets
+.env
+.env.local
+*.local.toml
+
+# OS / editor
+.DS_Store
+*.swp
+
+# claude-code per-user
+.claude/settings.local.json
