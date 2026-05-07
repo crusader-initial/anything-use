@@ -37,11 +37,13 @@ claude mcp add --scope user --transport stdio \
   mobile -- npx -y @mobilenext/mobile-mcp@latest
 
 # --- Computer (Phase 4 — only if wrapper exists) ---
+# Use ${PYTHON} to point at a venv, e.g.:
+#   PYTHON=/path/to/anything-use/.venv/bin/python3 bash scripts/install-claude-code.sh
 if [[ -f "$ROOT/servers/computer/wrapper/mcp_server.py" ]]; then
   echo "==> computer"
   remove_if_exists computer
   claude mcp add --scope user --transport stdio \
-    computer -- python3 "$ROOT/servers/computer/wrapper/mcp_server.py"
+    computer -- "${PYTHON:-python3}" "$ROOT/servers/computer/wrapper/mcp_server.py"
 else
   echo "skip computer (Phase 4 not yet built)"
 fi

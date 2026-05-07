@@ -1,0 +1,36 @@
+# Run the extended computer-use container with our agentd sidecar.
+#
+#   docker compose -f servers/computer/docker-compose.yml up -d --build
+#   open http://localhost:6080/vnc.html      # human view
+#   curl http://localhost:9222/healthz       # agentd liveness
+#
+# Apple Silicon: the upstream image is amd64-only; Rosetta emulation kicks in
+# automatically thanks to `platform: linux/amd64`. Performance is acceptable
+# for GUI work but you can feel it.
+
+services:
+  computer:
+    build:
+      context: .
+      dockerfile: Dockerfile.wrapper
+    image: anything-use/computer:latest
+    container_name: anything-use-computer
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      # All bound to localhost — DO NOT change to 0.0.0.0 without adding auth.
+      - "127.0.0.1:5900:5900"  # raw VNC
+      - "127.0.0.1:6080:6080"  # noVNC web (human view)
+      - "127.0.0.1:8501:8501"  # upstream Streamlit (optional, leave running)
+      - "127.0.0.1:8080:8080"  # upstream combined UI
+      - "127.0.0.1:9222:9222"  # agentd (our HTTP sidecar)
+    volumes:
+      - ./data:/home/computeruse  # persists firefox profile, files, logs
+      - ./data/agentd-logs:/var/log/agentd-logs
+    environment:
+      - DISPLAY=:1
+      - WIDTH=1280
+      - HEIGHT=800
+      # ANTHROPIC_API_KEY is only needed if you want the upstream Streamlit
+      # demo to talk to Claude. Our MCP wrapper does NOT need it.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

@@ -7,14 +7,14 @@ to **three execution surfaces** via independent MCP servers:
 |---|---|---|
 | **Browser** | The agent can navigate, click, type on real web pages | [`@playwright/mcp`](https://github.com/microsoft/playwright-mcp) |
 | **Mobile** | The agent can operate an Android phone (or iOS) | [`@mobilenext/mobile-mcp`](https://github.com/mobile-next/mobile-mcp) |
-| **Computer** | The agent can drive a sandboxed Linux desktop | Anthropic computer-use container + custom MCP wrapper *(WIP)* |
+| **Computer** | The agent can drive a sandboxed Linux desktop | Anthropic computer-use container + custom MCP wrapper |
 
 The motivation: agents are powerful, but blind to anything that lives only in a phone
 app, a desktop GUI, or a site without a public API. This framework hands them eyes
 and hands for those surfaces — using one dedicated AI account, isolated from your
 personal devices and data.
 
-> Status: **Phase 1-3 done** (browser + mobile work). Phase 4 (computer-use) WIP.
+> Status: **Phase 1-4 done** (all three surfaces wired up). Phase 5-6 (polish + runbook) remaining.
 > Full design and roadmap: [`PLAN.md`](./PLAN.md).
 
 ## Quick start — Mobile (the most-asked use case)
@@ -57,9 +57,32 @@ will persist across server restarts.
 
 ## Quick start — Computer
 
-Not yet implemented. Phase 4 of [`PLAN.md`](./PLAN.md). The plan is: Anthropic's
-official computer-use Docker image + a small FastAPI sidecar inside the container
-exposing screen control as REST + a stdio MCP wrapper on the host that proxies to it.
+Sandboxed Linux desktop in a Docker container. Full walkthrough:
+[`docs/computer-setup.md`](./docs/computer-setup.md). Short version:
+
+```bash
+# 1. Install deps for the host-side MCP wrapper
+python3 -m pip install --user -r servers/computer/wrapper/requirements.txt
+
+# 2. Build + start the container (~5 min first time)
+bash servers/computer/run.sh up
+
+# 3. Watch the desktop (optional)
+open http://localhost:6080/vnc.html
+
+# 4. Register and use
+bash scripts/install-claude-code.sh
+# in a new claude-code session:
+#   computer_health
+#   computer_open_url https://example.com
+#   computer_screenshot
+```
+
+Container architecture: extends Anthropic's official computer-use image
+(`ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest`) with a
+~150-line FastAPI sidecar (`agentd`) that exposes `xdotool` / `scrot` / `bash` as
+REST. A stdio MCP server on the host (`servers/computer/wrapper/mcp_server.py`)
+proxies tool calls to it.
 
 ## Architecture
 
@@ -105,7 +128,12 @@ boundary visible and recoverable.
 ├── servers/
 │   ├── browser/run.sh         Launches Playwright MCP with persistent profile
 │   ├── mobile/run.sh          Launches mobile-mcp
-│   └── computer/              (Phase 4 WIP)
+│   └── computer/              Docker container + agentd sidecar + MCP wrapper
+│       ├── Dockerfile.wrapper Extends Anthropic's computer-use image
+│       ├── docker-compose.yml Container orchestration (localhost-only ports)
+│       ├── agentd/            Tiny FastAPI sidecar that lives in the container
+│       ├── wrapper/           Host-side stdio MCP server (Python)
+│       └── run.sh             Convenience: ./run.sh {up|down|logs|shell|status}
 ├── scripts/
 │   ├── install-claude-code.sh Register all servers with Claude Code (user scope)
 │   └── install-codex.sh       Register all servers with Codex (~/.codex/config.toml)

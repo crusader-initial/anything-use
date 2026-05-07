@@ -51,7 +51,7 @@ EOF
   if [[ -f "$ROOT/servers/computer/wrapper/mcp_server.py" ]]; then
     cat <<EOF
 [mcp_servers.computer]
-command = "python3"
+command = "${PYTHON:-python3}"
 args = ["$ROOT/servers/computer/wrapper/mcp_server.py"]
 startup_timeout_sec = 120
 

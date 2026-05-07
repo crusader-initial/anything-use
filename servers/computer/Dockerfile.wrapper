@@ -1,0 +1,36 @@
+# Extends Anthropic's reference computer-use image with our HTTP sidecar.
+# We keep the upstream image's full desktop stack (Xvfb / mutter / noVNC) so
+# humans can watch the agent via http://localhost:6080/vnc.html.
+
+FROM ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+
+USER root
+
+# scrot is needed for /screenshot. xdotool, xdpyinfo, firefox-esr, bash, python3
+# are already in the upstream image.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends scrot \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install agentd's Python deps into a dedicated venv to avoid clobbering
+# the upstream image's pinned packages.
+RUN python3 -m venv /opt/agentd/venv
+COPY agentd/requirements.txt /opt/agentd/requirements.txt
+RUN /opt/agentd/venv/bin/pip install --no-cache-dir -r /opt/agentd/requirements.txt
+
+COPY agentd/agentd.py /opt/agentd/agentd.py
+COPY agentd/entrypoint-with-agentd.sh /usr/local/bin/entrypoint-with-agentd.sh
+RUN chmod +x /usr/local/bin/entrypoint-with-agentd.sh
+
+# Make the venv's python the one our entrypoint launches.
+ENV PATH="/opt/agentd/venv/bin:${PATH}"
+
+# Audit log lives in a path the host can mount over.
+RUN mkdir -p /var/log && touch /var/log/agentd.jsonl
+
+# Drop back to the upstream image's user (`computeruse`) — but the entrypoint
+# needs root for log writing; set USER 0 to keep it simple. (The desktop
+# session itself runs as computeruse via the original entrypoint's su.)
+USER root
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-with-agentd.sh"]
