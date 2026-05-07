@@ -1,0 +1,17 @@
+# Default to auto-detected text with LF endings on checkout.
+* text=auto eol=lf
+
+# Force LF on anything Windows might want to CRLF-mangle.
+*.sh        text eol=lf
+*.py        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
+Dockerfile* text eol=lf
+
+# Binary — never touch.
+*.png       binary
+*.jpg       binary
+*.apk       binary
+*.zip       binary
